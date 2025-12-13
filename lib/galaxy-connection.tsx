@@ -34,41 +34,17 @@ export class GalaxyConnection {
   private planetJoinedCallbacks: PlanetJoinedCallback[] = []
   private afterActionCallbacks: AfterActionCallback[] = []
 
-  constructor() {}
-
-  /* ================= CALLBACK REGISTRATION ================= */
-
-  onLog(cb: LogCallback) {
-    this.logCallbacks.push(cb)
-  }
-
-  onConnected(cb: ConnectedCallback) {
-    this.connectedCallbacks.push(cb)
-  }
-
-  onDisconnected(cb: DisconnectedCallback) {
-    this.disconnectedCallbacks.push(cb)
-  }
-
-  onUserJoin(cb: UserJoinCallback) {
-    this.userJoinCallbacks.push(cb)
-  }
-
-  onUserPart(cb: UserPartCallback) {
-    this.userPartCallbacks.push(cb)
-  }
-
-  onAuthenticated(cb: AuthenticatedCallback) {
-    this.authenticatedCallbacks.push(cb)
-  }
-
-  onPlanetJoined(cb: PlanetJoinedCallback) {
-    this.planetJoinedCallbacks.push(cb)
-  }
-
-  onAfterAction(cb: AfterActionCallback) {
-    this.afterActionCallbacks.push(cb)
-  }
+  constructor() {
+  // Ensure all callback arrays are always initialized
+  this.logCallbacks = []
+  this.connectedCallbacks = []
+  this.disconnectedCallbacks = []
+  this.userJoinCallbacks = []
+  this.userPartCallbacks = []
+  this.authenticatedCallbacks = []
+  this.planetJoinedCallbacks = []
+  this.afterActionCallbacks = []
+}
 
   /* ================= INTERNAL HELPERS ================= */
 

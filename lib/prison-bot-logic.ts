@@ -1,6 +1,8 @@
-// Core prison bot logic
+// Core prison bot logic (merged & hardened)
 
-import { GalaxyConnection } from "./GalaxyConnection" // path agar alag ho to adjust kar lena
+import { GalaxyConnection } from "./GalaxyConnection"
+
+// ================== SETTINGS & FILTERS ==================
 
 export interface BotSettings {
   prisonAll: boolean
@@ -29,6 +31,19 @@ export interface FilterLists {
   whiteNick: string[]
 }
 
+// ================== STATE MACHINE ==================
+
+enum BotState {
+  IDLE = "IDLE",
+  JOIN_WAIT = "JOIN_WAIT",     // Galaxy 3-sec rule
+  ACTIVE = "ACTIVE",
+  ACTION = "ACTION",
+  DISCONNECTING = "DISCONNECTING",
+  RECONNECTING = "RECONNECTING",
+}
+
+// ================== MAIN LOGIC ==================
+
 export class PrisonBotLogic {
 
   // ===== FLAGS =====
@@ -45,6 +60,12 @@ export class PrisonBotLogic {
   private currentPlanetId: string | null = null
   private targetUsers: Set<string> = new Set()
 
+  // ===== STATE =====
+  private state: BotState = BotState.IDLE
+  private joinReadyAt = 0
+  private inFlight = false
+  private cycleId = 0
+
   // ===== TIMERS =====
   private attackTimer: NodeJS.Timeout | null = null
   private defenseTimer: NodeJS.Timeout | null = null
@@ -60,14 +81,25 @@ export class PrisonBotLogic {
     this.filters = filters
     this.connection = connection
 
-    // 🔔 Action complete listener (PRISON / FLY)
-   if (this.connection) {
-  this.connection.onAfterAction(() => {
-    this.onAfterAction()
-  })
-} else {
-  console.warn("PrisonBotLogic: GalaxyConnection undefined")
-}
+    // ===== Connection lifecycle =====
+    this.connection?.onConnected?.(() => {
+      this.state = BotState.JOIN_WAIT
+      // Galaxy 3-sec rule
+      this.joinReadyAt = Date.now() + 3000
+    })
+
+    this.connection?.onPlanetJoined?.(() => {
+      this.state = BotState.ACTIVE
+    })
+
+    // ===== Action completion (PRISON / FLY) =====
+    if (this.connection) {
+      this.connection.onAfterAction(() => {
+        this.onAfterAction()
+      })
+    } else {
+      console.warn("PrisonBotLogic: GalaxyConnection undefined")
+    }
   }
 
   // ===================================================
@@ -81,11 +113,12 @@ export class PrisonBotLogic {
     this.isDefending = false
     this.isCaught = false
 
-    // ⏳ Cooldown 5–8 sec
+    // Cooldown 5–8 sec
     this.cooldownUntil = Date.now() + (5000 + Math.random() * 3000)
 
+    // Immediate cycle (competitive)
     if (this.settings.disconnectAction) {
-      this.disconnect("after_action")
+      this.nextCycle("after_action")
     }
   }
 
@@ -113,16 +146,12 @@ export class PrisonBotLogic {
     if (
       this.filters.whiteClan.includes(clan) ||
       this.filters.whiteNick.includes(username)
-    ) {
-      return false
-    }
+    ) return false
 
     if (
       this.filters.blackClan.includes(clan) ||
       this.filters.blackNick.includes(username)
-    ) {
-      return true
-    }
+    ) return true
 
     return false
   }
@@ -159,10 +188,10 @@ export class PrisonBotLogic {
 
     if (usePM) {
       const base = (minVal + maxVal) / 2
-      return base + (Math.random() * 2 - 1) * pmVal
+      return Math.max(0, base + (Math.random() * 2 - 1) * pmVal)
     }
 
-    return minVal + Math.random() * (maxVal - minVal)
+    return Math.max(0, minVal + Math.random() * (maxVal - minVal))
   }
 
   private getAttackInterval(): number {
@@ -184,40 +213,54 @@ export class PrisonBotLogic {
   }
 
   // ===================================================
+  // STATE GUARDS
+  // ===================================================
+
+  private canAct(): boolean {
+    if (this.inFlight) return false
+    if (this.state !== BotState.ACTIVE) return false
+    if (Date.now() < this.joinReadyAt) return false
+    if (Date.now() < this.cooldownUntil) return false
+    return true
+  }
+
+  // ===================================================
   // TIMERS
   // ===================================================
 
   startAttackTimer(callback: () => void) {
-    if (Date.now() < this.cooldownUntil) return
+    if (!this.canAct()) return
     if (this.isAttacking || this.isDefending) return
 
     this.isAttacking = true
+    this.state = BotState.ACTION
 
     if (this.attackTimer) clearTimeout(this.attackTimer)
 
     const interval = this.getAttackInterval()
 
     this.attackTimer = setTimeout(() => {
+      this.inFlight = true
       callback()
       this.isAttacking = false
-      this.startAttackTimer(callback)
     }, interval)
   }
 
   startDefenseTimer(callback: () => void) {
-    if (Date.now() < this.cooldownUntil) return
+    if (!this.canAct()) return
     if (this.isDefending || this.isAttacking) return
 
     this.isDefending = true
+    this.state = BotState.ACTION
 
     if (this.defenseTimer) clearTimeout(this.defenseTimer)
 
     const interval = this.getDefenseInterval()
 
     this.defenseTimer = setTimeout(() => {
+      this.inFlight = true
       callback()
       this.isDefending = false
-      this.startDefenseTimer(callback)
     }, interval)
   }
 
@@ -245,8 +288,7 @@ export class PrisonBotLogic {
     this.stopTimers()
 
     this.startAttackTimer(() => {
-      // 🔥 YAHAN REAL PRISON / ATTACK CALL AAYEGA
-      // example:
+      // TODO: real prison/attack call
       // this.connection.prisonUser(targetId)
     })
   }
@@ -255,26 +297,40 @@ export class PrisonBotLogic {
     this.stopTimers()
 
     this.startDefenseTimer(() => {
-      // 🔥 YAHAN REAL DEFENSE LOGIC AAYEGA
+      // TODO: real defence logic
     })
   }
 
   // ===================================================
-  // DISCONNECT / RECONNECT
+  // DEFENCE TRIGGER (CALL WHEN BOT IS TARGETED)
   // ===================================================
 
-  private disconnect(reason: string = "") {
+  public onEnemyActionDetected() {
+    if (this.state === BotState.ACTION) return
+    this.nextCycle("defence")
+  }
+
+  // ===================================================
+  // DISCONNECT / RECONNECT (FAST LOOP)
+  // ===================================================
+
+  private nextCycle(reason: string) {
+    if (!this.settings.reconnect) return
+
+    this.cycleId++
+    this.inFlight = false
     this.stopTimers()
 
-    if (!this.settings.reconnect) return
+    this.state = BotState.DISCONNECTING
+    this.connection.disconnect?.(reason)
+
+    this.state = BotState.RECONNECTING
 
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
 
-    const wait = Number(this.settings.timerReconnect || 0)
-    if (wait > 0) {
-      this.reconnectTimer = setTimeout(() => {
-        this.connection.connect?.()
-      }, wait)
-    }
+    // ⚡ competitive fast reconnect
+    this.reconnectTimer = setTimeout(() => {
+      this.connection.connect?.()
+    }, 120)
   }
 }
