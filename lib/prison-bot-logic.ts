@@ -73,34 +73,24 @@ export class PrisonBotLogic {
   private caughtTimer: NodeJS.Timeout | null = null
 
   constructor(
-    settings: BotSettings,
-    filters: FilterLists,
-    connection: GalaxyConnection
-  ) {
-    this.settings = settings
-    this.filters = filters
-    this.connection = connection
+  settings: BotSettings,
+  filters: FilterLists,
+  connection?: GalaxyConnection
+) {
+  this.settings = settings
+  this.filters = filters
 
-    // ===== Connection lifecycle =====
-    this.connection?.onConnected?.(() => {
-      this.state = BotState.JOIN_WAIT
-      // Galaxy 3-sec rule
-      this.joinReadyAt = Date.now() + 3000
-    })
-
-    this.connection?.onPlanetJoined?.(() => {
-      this.state = BotState.ACTIVE
-    })
-
-    // ===== Action completion (PRISON / FLY) =====
-    if (this.connection) {
-      this.connection.onAfterAction(() => {
-        this.onAfterAction()
-      })
-    } else {
-      console.warn("PrisonBotLogic: GalaxyConnection undefined")
-    }
+  if (!connection) {
+    console.warn("PrisonBotLogic: GalaxyConnection missing – bot idle")
+    return
   }
+
+  this.connection = connection
+
+  this.connection.onAfterAction?.(() => {
+    this.onAfterAction()
+  })
+}
 
   // ===================================================
   // AFTER ACTION CLEANUP
