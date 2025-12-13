@@ -141,14 +141,19 @@ export default function GalaxyPrisonBot() {
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
+    <div className="min-h-screen bg-gradient-to-br from-black via-[#12001f] to-[#0a0014] text-white p-4">
       <Toaster />
 
       <Card>
         <CardHeader>
-          <CardTitle>Storm-The Legend Killer</CardTitle>
-          <CardDescription>project by AWARA_HUN</CardDescription>
-        </CardHeader>
+          <CardHeader className="text-center">
+  <CardTitle className="text-3xl font-extrabold tracking-wide bg-gradient-to-r from-fuchsia-500 via-purple-500 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(168,85,247,0.6)]">
+    Storm-The Legend Killer
+  </CardTitle>
+  <CardDescription className="text-sm text-purple-300 tracking-widest">
+    project by <span className="text-pink-400 font-semibold">AWARA_HUN</span>
+  </CardDescription>
+</CardHeader>
 
         <CardContent>
           <Input value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} placeholder="Recovery code" />
