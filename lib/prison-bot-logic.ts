@@ -61,9 +61,13 @@ export class PrisonBotLogic {
     this.connection = connection
 
     // 🔔 Action complete listener (PRISON / FLY)
-    this.connection.onAfterAction(() => {
-      this.onAfterAction()
-    })
+   if (this.connection) {
+  this.connection.onAfterAction(() => {
+    this.onAfterAction()
+  })
+} else {
+  console.warn("PrisonBotLogic: GalaxyConnection undefined")
+}
   }
 
   // ===================================================
