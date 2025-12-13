@@ -145,11 +145,11 @@ export default function GalaxyPrisonBot() {
       <Toaster />
 
       <Card>
-        <CardHeader>
-          <CardHeader className="text-center">
-  <CardTitle className="text-3xl font-extrabold tracking-wide bg-gradient-to-r from-fuchsia-500 via-purple-500 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(168,85,247,0.6)]">
+         <CardHeader className="text-center">
+  <CardTitle className="text-3xl font-extrabold tracking-wide">
     Storm-The Legend Killer
   </CardTitle>
+
   <CardDescription className="text-sm text-purple-300 tracking-widest">
     project by <span className="text-pink-400 font-semibold">AWARA_HUN</span>
   </CardDescription>
