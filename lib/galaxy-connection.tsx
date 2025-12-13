@@ -24,15 +24,16 @@ export class GalaxyConnection {
   private botData: { nick?: string; pass?: string; id?: string } = {}
   private myUserId = ""
 
-  // callbacks
-  private logCallbacks: LogCallback[] = []
-  private connectedCallbacks: ConnectedCallback[] = []
-  private disconnectedCallbacks: DisconnectedCallback[] = []
-  private userJoinCallbacks: UserJoinCallback[] = []
-  private userPartCallbacks: UserPartCallback[] = []
-  private authenticatedCallbacks: AuthenticatedCallback[] = []
-  private planetJoinedCallbacks: PlanetJoinedCallback[] = []
-  private afterActionCallbacks: AfterActionCallback[] = []
+  // ================= CALLBACKS =================
+
+private logCallbacks: LogCallback[] = []
+private connectedCallbacks: ConnectedCallback[] = []
+private disconnectedCallbacks: DisconnectedCallback[] = []
+private userJoinCallbacks: UserJoinCallback[] = []
+private userPartCallbacks: UserPartCallback[] = []
+private authenticatedCallbacks: AuthenticatedCallback[] = []
+private planetJoinedCallbacks: PlanetJoinedCallback[] = []
+private afterActionCallbacks: AfterActionCallback[] = []
 
   constructor() {
   // Ensure all callback arrays are always initialized
@@ -44,6 +45,41 @@ export class GalaxyConnection {
   this.authenticatedCallbacks = []
   this.planetJoinedCallbacks = []
   this.afterActionCallbacks = []
+}
+
+  // ================= CALLBACK REGISTRATION =================
+
+onLog(cb: LogCallback) {
+  if (!cb) return
+  this.logCallbacks.push(cb)
+}
+
+onConnected(cb: ConnectedCallback) {
+  this.connectedCallbacks.push(cb)
+}
+
+onDisconnected(cb: DisconnectedCallback) {
+  this.disconnectedCallbacks.push(cb)
+}
+
+onUserJoin(cb: UserJoinCallback) {
+  this.userJoinCallbacks.push(cb)
+}
+
+onUserPart(cb: UserPartCallback) {
+  this.userPartCallbacks.push(cb)
+}
+
+onAuthenticated(cb: AuthenticatedCallback) {
+  this.authenticatedCallbacks.push(cb)
+}
+
+onPlanetJoined(cb: PlanetJoinedCallback) {
+  this.planetJoinedCallbacks.push(cb)
+}
+
+onAfterAction(cb: AfterActionCallback) {
+  this.afterActionCallbacks.push(cb)
 }
 
   /* ================= INTERNAL HELPERS ================= */
