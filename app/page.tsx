@@ -153,21 +153,23 @@ export default function GalaxyPrisonBot() {
   rounded-2xl
 ">
          <CardHeader className="text-center">
-  <CardTitle className="
-  text-4xl font-extrabold tracking-widest
-  bg-gradient-to-r from-fuchsia-500 via-purple-500 to-cyan-400
-  bg-clip-text text-transparent
-  drop-shadow-[0_0_25px_rgba(168,85,247,0.6)]
-">
-  Storm-The Legend Killer
-</CardTitle>
-  Storm-The Legend Killer
-</CardTitle>
+  <CardHeader className="text-center">
+  <CardTitle
+    className="
+      text-4xl font-extrabold tracking-widest
+      bg-gradient-to-r from-fuchsia-500 via-purple-500 to-cyan-400
+      bg-clip-text text-transparent
+      drop-shadow-[0_0_25px_rgba(168,85,247,0.6)]
+    "
+  >
+    {"Storm-The Legend Killer"}
+  </CardTitle>
 
   <CardDescription className="text-sm text-purple-300 tracking-widest">
-  project by{" "}
-  <span className="text-pink-400 font-semibold">AWARA_HUN</span>
-</CardDescription>
+    {"project by "}
+    <span className="text-pink-400 font-semibold">AWARA_HUN</span>
+  </CardDescription>
+</CardHeader>
 
         <CardContent>
           <Input value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} placeholder="Recovery code" />
