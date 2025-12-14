@@ -266,8 +266,12 @@ export default function GalaxyPrisonBot() {
       ))
     )}
   </div>
+</div>
+
+</div>
 )
 }
+   
 
 
 
