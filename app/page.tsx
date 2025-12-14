@@ -150,6 +150,61 @@ export default function GalaxyPrisonBot() {
             <CardTitle className="text-3xl font-extrabold tracking-wider bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
               Storm-The Legend Killer
             </CardTitle>
+{/* ========== STORM AVATAR (BOT STATE SYNCED) ========== */}
+<div className="flex justify-center mt-6 mb-8 relative z-10">
+  <div className="relative w-28 h-28 flex items-center justify-center">
+
+    {/* Outer rotating ring */}
+    <div
+      className={`
+        absolute inset-0 rounded-full border-2 animate-spin
+        ${
+          !isConnected
+            ? "border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.8)]"
+            : botRunning
+            ? "border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.9)]"
+            : "border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.8)]"
+        }
+      `}
+    />
+
+    {/* Inner pulse ring */}
+    <div
+      className={`
+        absolute inset-1 rounded-full border animate-pulse
+        ${
+          !isConnected
+            ? "border-red-400/40"
+            : botRunning
+            ? "border-green-400/50"
+            : "border-yellow-400/40"
+        }
+      `}
+    />
+
+    {/* Avatar */}
+    <img
+      src="https://i.pravatar.cc/150?img=32"
+      alt="Storm Avatar"
+      className="w-20 h-20 rounded-full z-10 bg-black border-2 border-black"
+    />
+
+    {/* Status dot */}
+    <span
+      className={`
+        absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-black
+        animate-pulse
+        ${
+          !isConnected
+            ? "bg-red-500"
+            : botRunning
+            ? "bg-green-500"
+            : "bg-yellow-400"
+        }
+      `}
+    />
+  </div>
+</div>
             <CardDescription className="text-gray-400">
               project by AWARA_HUN
             </CardDescription>
