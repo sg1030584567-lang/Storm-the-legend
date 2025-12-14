@@ -263,7 +263,8 @@ export default function GalaxyPrisonBot() {
     ))
   )}
 </div>
-
+)
+}
 
 
 
