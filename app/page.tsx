@@ -165,9 +165,9 @@ export default function GalaxyPrisonBot() {
 </CardTitle>
 
   <CardDescription className="text-sm text-purple-300 tracking-widest">
-    project by <span className="text-pink-400 font-semibold">AWARA_HUN</span>
-  </CardDescription>
-</CardHeader>
+  project by{" "}
+  <span className="text-pink-400 font-semibold">AWARA_HUN</span>
+</CardDescription>
 
         <CardContent>
           <Input value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} placeholder="Recovery code" />
