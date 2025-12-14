@@ -226,7 +226,7 @@ export default function GalaxyPrisonBot() {
     </span>
   </div>
 </div>
-  {/* ================= STORM LOG CONSOLE ================= */}
+  {/* ============== STORM LOG CONSOLE ============== */}
 <div className="mt-6">
   <div className="mb-2 flex items-center justify-between">
     <span className="text-sm font-semibold text-purple-400 tracking-wider">
@@ -234,34 +234,40 @@ export default function GalaxyPrisonBot() {
     </span>
 
     <button
-  onClick={() => setLogs([])}
-  className="text-xs text-red-400 hover:text-red-300 transition"
->
-  Clear
-</button>
+      onClick={() => setLogs([])}
+      className="text-xs text-red-400 hover:text-red-300 transition"
+    >
+      Clear
+    </button>
+  </div>
 
   <div
-  className="h-52 overflow-y-auto rounded-xl
-  bg-black/70 backdrop-blur
-  border border-purple-500/30
-  shadow-[0_0_25px_rgba(168,85,247,0.25)]
-  p-3
-  text-xs font-mono
-  text-green-400"
->
-  {logs.length === 0 ? (
-    <div className="text-gray-500 italic">
-      Waiting for storm activity...
-    </div>
-  ) : (
-    logs.map((log, i) => (
-      <div
-        key={i}
-        className="mb-1 leading-snug"
-        dangerouslySetInnerHTML={{ __html: log }}
-      />
-    ))
-  )}
+    className="
+      h-52 overflow-y-auto rounded-xl
+      bg-black/70 backdrop-blur
+      border border-purple-500/30
+      shadow-[0_0_25px_rgba(168,85,247,0.25)]
+      p-3
+      text-xs font-mono
+      text-green-400
+    "
+  >
+    {logs.length === 0 ? (
+      <div className="text-gray-500 italic">
+        Waiting for storm activity...
+      </div>
+    ) : (
+      logs.map((log, i) => (
+        <div
+          key={i}
+          className="mb-1 leading-snug"
+          dangerouslySetInnerHTML={{ __html: log }}
+        />
+      ))
+    )}
+  </div>
+</div>
+</div>
 </div>
 )
 }
