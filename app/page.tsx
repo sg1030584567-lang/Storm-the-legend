@@ -141,143 +141,59 @@ export default function GalaxyPrisonBot() {
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-purple-950 text-white p-4">
-      <Toaster />
+    <div className="min-h-screen bg-black text-white p-4">
+      <h1 className="text-3xl font-bold text-center text-purple-400 mb-1">
+        Storm-The Legend Killer
+      </h1>
+      <p className="text-center text-gray-400 mb-6">
+        project by AWARA_HUN
+      </p>
 
-      <div className="mx-auto max-w-2xl">
-        <Card className="border-purple-500/30 bg-black/70 backdrop-blur-xl shadow-[0_0_60px_rgba(168,85,247,0.25)]">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-extrabold tracking-wider bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-              Storm-The Legend Killer
-            </CardTitle>
-{/* ========== STORM AVATAR (BOT STATE SYNCED) ========== */}
-<div className="flex justify-center mt-6 mb-8 relative z-10">
-  <div className="relative w-28 h-28 flex items-center justify-center">
+      {/* ===== STORM LOG CONSOLE ===== */}
+      <div className="mt-6">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-semibold text-purple-400 tracking-wider">
+            ⚡ STORM CONSOLE
+          </span>
 
-    {/* Outer rotating ring */}
-    <div
-      className={`
-        absolute inset-0 rounded-full border-2 animate-spin
-        ${
-          !isConnected
-            ? "border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.8)]"
-            : botRunning
-            ? "border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.9)]"
-            : "border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.8)]"
-        }
-      `}
-    />
+          <button
+            onClick={() => setLogs([])}
+            className="text-xs text-red-400 hover:text-red-300 transition"
+          >
+            Clear
+          </button>
+        </div>
 
-    {/* Inner pulse ring */}
-    <div
-      className={`
-        absolute inset-1 rounded-full border animate-pulse
-        ${
-          !isConnected
-            ? "border-red-400/40"
-            : botRunning
-            ? "border-green-400/50"
-            : "border-yellow-400/40"
-        }
-      `}
-    />
-
-    {/* Avatar */}
-    <img
-      src="https://i.pravatar.cc/150?img=32"
-      alt="Storm Avatar"
-      className="w-20 h-20 rounded-full z-10 bg-black border-2 border-black"
-    />
-
-    {/* Status dot */}
-    <span
-      className={`
-        absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-black
-        animate-pulse
-        ${
-          !isConnected
-            ? "bg-red-500"
-            : botRunning
-            ? "bg-green-500"
-            : "bg-yellow-400"
-        }
-      `}
-    />
-  </div>
-</div>
-            <CardDescription className="text-gray-400">
-              project by AWARA_HUN
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <Tabs defaultValue="main">
-              <TabsList className="grid grid-cols-4 mb-4">
-                <TabsTrigger value="main">Main</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-                <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
-                <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
-              </TabsList>
-
-              {/* ================= MAIN ================= */}
-              <TabsContent value="main" className="space-y-4">
-                <Label>Recovery Code</Label>
-                <Input value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} />
-
-                <div className="flex gap-2">
-                  <Button onClick={connectBot} disabled={isConnected}>Connect</Button>
-                  <Button onClick={disconnectBot} variant="destructive">Disconnect</Button>
-                </div>
-
-                <Label>Planet</Label>
-                <Input value={planetName} onChange={(e) => setPlanetName(e.target.value)} />
-                <Button onClick={travelToPlanet} disabled={!isConnected}>Travel</Button>
-
-                <Button onClick={startBot} disabled={!isConnected || botRunning} className="w-full bg-green-600">
-                  Start Bot
-                </Button>
-
-                {/* ============== STORM LOG CONSOLE ============== */}
-                <div className="mt-6">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-purple-400 tracking-wider">
-                      ⚡ STORM CONSOLE
-                    </span>
-                    <button onClick={() => setLogs([])} className="text-xs text-red-400">
-                      Clear
-                    </button>
-                  </div>
-
-                  <div className="h-52 overflow-y-auto rounded-xl bg-black/70 border border-purple-500/30 p-3 text-xs font-mono text-green-400">
-                    {logs.length === 0 ? (
-                      <div className="text-gray-500 italic">
-                        Waiting for storm activity...
-                      </div>
-                    ) : (
-                      logs.map((log, i) => (
-                        <div key={i} dangerouslySetInnerHTML={{ __html: log }} />
-                      ))
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* ================= BLACKLIST ================= */}
-              <TabsContent value="blacklist">
-                <Textarea value={blackClan} onChange={(e) => setBlackClan(e.target.value)} placeholder="Blacklisted clans" />
-                <Textarea value={blackNick} onChange={(e) => setBlackNick(e.target.value)} placeholder="Blacklisted nicks" />
-              </TabsContent>
-
-              {/* ================= WHITELIST ================= */}
-              <TabsContent value="whitelist">
-                <Textarea value={whiteClan} onChange={(e) => setWhiteClan(e.target.value)} placeholder="Whitelisted clans" />
-                <Textarea value={whiteNick} onChange={(e) => setWhiteNick(e.target.value)} placeholder="Whitelisted nicks" />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <div
+          className="
+            h-52 overflow-y-auto rounded-xl
+            bg-black/70 backdrop-blur
+            border border-purple-500/30
+            shadow-[0_0_25px_rgba(168,85,247,0.25)]
+            p-3
+            text-xs font-mono
+            text-green-400
+          "
+        >
+          {logs.length === 0 ? (
+            <div className="text-gray-500 italic">
+              Waiting for storm activity...
+            </div>
+          ) : (
+            logs.map((log, i) => (
+              <div
+                key={i}
+                className="mb-1 leading-snug"
+                dangerouslySetInnerHTML={{ __html: log }}
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
+  )
+}
+
   )
 }
 

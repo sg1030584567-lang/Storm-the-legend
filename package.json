@@ -1,11 +1,10 @@
 {
-  "name": "my-v0-project",
+  "name": "storm-the-legend-killer",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
-    "lint": "eslint .",
+    "dev": "NEXT_FORCE_NO_TURBOPACK=1 next dev",
+    "build": "NEXT_FORCE_NO_TURBOPACK=1 next build",
     "start": "next start"
   },
   "dependencies": {
