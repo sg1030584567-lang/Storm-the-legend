@@ -82,9 +82,9 @@ export default function GalaxyPrisonBot() {
     }
 
     try {
-      const conn = new GalaxyConnection({
         onLog: (msg: string) => addLog(msg),
-      })
+})const conn = new GalaxyConnection()
+conn.onLog((msg: string) => addLog(msg))
 
       await conn.connect(recoveryCode)
 
