@@ -88,9 +88,13 @@ const botRef = useRef<PrisonBotLogic | null>(null) // ✅ ADD THIS
 
     setIsConnected(true)
 
-    botRef.current = new PrisonBotLogic(conn, settings, {
       onLog: (msg: string) => addLog(msg),
-    })
+})botRef.current = new PrisonBotLogic(
+  settings,
+  filtersRef.current,
+  conn,
+  (msg: string) => addLog(msg)
+)
 
     toast({ title: "Connected to Galaxy" })
   } catch (e: any) {
