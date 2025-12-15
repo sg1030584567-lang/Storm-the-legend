@@ -55,7 +55,7 @@ export class PrisonBotLogic {
   // ===== CORE DATA =====
   private settings: BotSettings
   private filters: FilterLists
-  private connection: GalaxyConnection
+  private connection!: GalaxyConnection
 
   private currentPlanetId: string | null = null
   private targetUsers: Set<string> = new Set()
