@@ -1,4 +1,4 @@
-// Galaxy WebSocket connection handler with IRC protocol
+// Galaxy WebSocket connection handler (Browser + Vercel SAFE)
 
 export interface UserData {
   id: string
@@ -19,103 +19,92 @@ type AfterActionCallback = () => void
 export class GalaxyConnection {
   private socket: WebSocket | null = null
   private authenticated = false
-  private hash = ""
   private recover = ""
-  private botData: { nick?: string; pass?: string; id?: string } = {}
+  private hash = ""
   private myUserId = ""
 
-  // ================= CALLBACKS =================
+  /* ================= CALLBACKS ================= */
 
-private logCallbacks: LogCallback[] = []
-private connectedCallbacks: ConnectedCallback[] = []
-private disconnectedCallbacks: DisconnectedCallback[] = []
-private userJoinCallbacks: UserJoinCallback[] = []
-private userPartCallbacks: UserPartCallback[] = []
-private authenticatedCallbacks: AuthenticatedCallback[] = []
-private planetJoinedCallbacks: PlanetJoinedCallback[] = []
-private afterActionCallbacks: AfterActionCallback[] = []
+  private logCallbacks: LogCallback[] = []
+  private connectedCallbacks: ConnectedCallback[] = []
+  private disconnectedCallbacks: DisconnectedCallback[] = []
+  private userJoinCallbacks: UserJoinCallback[] = []
+  private userPartCallbacks: UserPartCallback[] = []
+  private authenticatedCallbacks: AuthenticatedCallback[] = []
+  private planetJoinedCallbacks: PlanetJoinedCallback[] = []
+  private afterActionCallbacks: AfterActionCallback[] = []
 
-  constructor() {
-  // Ensure all callback arrays are always initialized
-  this.logCallbacks = []
-  this.connectedCallbacks = []
-  this.disconnectedCallbacks = []
-  this.userJoinCallbacks = []
-  this.userPartCallbacks = []
-  this.authenticatedCallbacks = []
-  this.planetJoinedCallbacks = []
-  this.afterActionCallbacks = []
-}
+  constructor() {}
 
-  // ================= CALLBACK REGISTRATION =================
+  /* ================= CALLBACK REG ================= */
 
-onLog(cb: LogCallback) {
-  if (!cb) return
-  this.logCallbacks.push(cb)
-}
+  onLog(cb: LogCallback) {
+    cb && this.logCallbacks.push(cb)
+  }
 
-onConnected(cb: ConnectedCallback) {
-  this.connectedCallbacks.push(cb)
-}
+  onConnected(cb: ConnectedCallback) {
+    cb && this.connectedCallbacks.push(cb)
+  }
 
-onDisconnected(cb: DisconnectedCallback) {
-  this.disconnectedCallbacks.push(cb)
-}
+  onDisconnected(cb: DisconnectedCallback) {
+    cb && this.disconnectedCallbacks.push(cb)
+  }
 
-onUserJoin(cb: UserJoinCallback) {
-  this.userJoinCallbacks.push(cb)
-}
+  onUserJoin(cb: UserJoinCallback) {
+    cb && this.userJoinCallbacks.push(cb)
+  }
 
-onUserPart(cb: UserPartCallback) {
-  this.userPartCallbacks.push(cb)
-}
+  onUserPart(cb: UserPartCallback) {
+    cb && this.userPartCallbacks.push(cb)
+  }
 
-onAuthenticated(cb: AuthenticatedCallback) {
-  this.authenticatedCallbacks.push(cb)
-}
+  onAuthenticated(cb: AuthenticatedCallback) {
+    cb && this.authenticatedCallbacks.push(cb)
+  }
 
-onPlanetJoined(cb: PlanetJoinedCallback) {
-  this.planetJoinedCallbacks.push(cb)
-}
+  onPlanetJoined(cb: PlanetJoinedCallback) {
+    cb && this.planetJoinedCallbacks.push(cb)
+  }
 
-onAfterAction(cb: AfterActionCallback) {
-  this.afterActionCallbacks.push(cb)
-}
+  onAfterAction(cb: AfterActionCallback) {
+    cb && this.afterActionCallbacks.push(cb)
+  }
 
-  /* ================= INTERNAL HELPERS ================= */
+  /* ================= INTERNAL ================= */
 
   private log(msg: string) {
     console.log("[Galaxy]", msg)
     this.logCallbacks.forEach(cb => cb(msg))
   }
 
-  private send(str: string) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(str + "\r\n")
+  private send(cmd: string) {
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(cmd + "\r\n")
     }
   }
 
-  /* ================= MESSAGE HANDLER ================= */
+  /* ================= MESSAGE ================= */
 
   private receive(data: string) {
-    const lines = data.replace(/\r\n$/, "").split("\r\n")
+    const lines = data.split("\r\n")
 
     for (const line of lines) {
       if (!line.trim()) continue
 
       const parts = line.split(/\s+/)
-      const command = parts[0]
-      const colonIndex = line.indexOf(":")
-      const content = colonIndex !== -1 ? line.substring(colonIndex + 1).trim() : ""
+      const cmd = parts[0]
+      const payload = line.includes(":")
+        ? line.substring(line.indexOf(":") + 1)
+        : ""
 
-      switch (command) {
+      switch (cmd) {
         case "PING":
           this.send("PONG")
           break
 
         case "HAAAPSI":
+          this.hash = this.makeHash(parts[1])
           this.send("RECOVER " + this.recover)
-          this.hash = this.genHash(parts[1])
           break
 
         case "999":
@@ -124,9 +113,6 @@ onAfterAction(cb: AfterActionCallback) {
           break
 
         case "REGISTER":
-          this.botData.id = parts[1]
-          this.botData.pass = parts[2]
-          this.botData.nick = parts[3]
           this.myUserId = parts[1]
           this.send(`USER ${parts[1]} ${parts[2]} ${parts[3]} ${this.hash}`)
           break
@@ -136,11 +122,11 @@ onAfterAction(cb: AfterActionCallback) {
           break
 
         case "JOIN":
-          this.parseJoin(parts)
+          this.handleJoin(parts)
           break
 
         case "353":
-          this.parseUserList(content)
+          this.handleUserList(payload)
           break
 
         case "PART":
@@ -158,40 +144,40 @@ onAfterAction(cb: AfterActionCallback) {
 
   /* ================= PARSERS ================= */
 
-  private parseJoin(parts: string[]) {
+  private handleJoin(parts: string[]) {
     try {
       let nick = ""
-      let userId = ""
+      let id = ""
       let clan = ""
 
       if (parts[1] === "-") {
         nick = parts[2]
-        userId = parts[3]
-        for (let i = 4; i < parts.length; i++) {
-          if (parts[i]?.startsWith("[") && parts[i].endsWith("]")) {
-            clan = parts[i].slice(1, -1)
+        id = parts[3]
+        for (const p of parts) {
+          if (p.startsWith("[") && p.endsWith("]")) {
+            clan = p.slice(1, -1)
             break
           }
         }
       } else {
         nick = parts[1]
-        userId = parts[2]
+        id = parts[2]
       }
 
-      if (userId && userId !== this.myUserId) {
+      if (id && id !== this.myUserId) {
         this.userJoinCallbacks.forEach(cb =>
-          cb({ id: userId, nick, clan, level: "1" })
+          cb({ id, nick, clan, level: "1" })
         )
       }
     } catch {}
   }
 
-  private parseUserList(content: string) {
-    const parts = content.split(" ")
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (/^\d+$/.test(parts[i + 1]) && parts[i + 1] !== this.myUserId) {
+  private handleUserList(list: string) {
+    const p = list.split(" ")
+    for (let i = 0; i < p.length - 1; i++) {
+      if (/^\d+$/.test(p[i + 1]) && p[i + 1] !== this.myUserId) {
         this.userJoinCallbacks.forEach(cb =>
-          cb({ id: parts[i + 1], nick: parts[i], clan: "", level: "1" })
+          cb({ id: p[i + 1], nick: p[i], clan: "", level: "1" })
         )
       }
     }
@@ -215,47 +201,37 @@ onAfterAction(cb: AfterActionCallback) {
       this.disconnectedCallbacks.forEach(cb => cb())
     }
 
-    this.socket.onerror = () => {
-      this.disconnect()
-    }
-
+    this.socket.onerror = () => this.disconnect()
     this.socket.onmessage = e => this.receive(e.data)
   }
 
   disconnect() {
-    if (!this.socket) return
     try {
-      if (this.socket.readyState === WebSocket.OPEN) {
+      if (this.socket?.readyState === WebSocket.OPEN) {
         this.send("QUIT :disconnect")
       }
-      this.socket.close()
+      this.socket?.close()
     } catch {}
     this.socket = null
     this.authenticated = false
   }
 
-  /* ================= GAME ACTIONS ================= */
+  /* ================= GAME ================= */
 
   joinPlanet(name: string) {
-    if (this.authenticated) {
-      this.send("JOIN " + name)
-    }
+    this.authenticated && this.send("JOIN " + name)
   }
 
   prisonUser(userId: string) {
     if (!this.authenticated) return
     this.send("ACTION 3 " + userId)
-
-    // 🔔 notify PrisonBotLogic safely
     setTimeout(() => {
       this.afterActionCallbacks.forEach(cb => cb())
     }, 300)
   }
 
   standOnUser(userId: string) {
-    if (this.authenticated) {
-      this.send("FLY " + userId)
-    }
+    this.authenticated && this.send("FLY " + userId)
   }
 
   isConnected() {
@@ -271,13 +247,13 @@ onAfterAction(cb: AfterActionCallback) {
   }
 
   /* ================= HASH ================= */
-
-  private genHash(code: string): string {
-    const md5 = this.md5(code)
-    return md5.split("").reverse().join("0").substr(5, 10)
-  }
-
-  private md5(str: string): string {
-    return require("crypto").createHash("md5").update(str).digest("hex")
+  // Browser-safe deterministic hash (crypto-free)
+  private makeHash(seed: string) {
+    let h = 0
+    for (let i = 0; i < seed.length; i++) {
+      h = (h << 5) - h + seed.charCodeAt(i)
+      h |= 0
+    }
+    return Math.abs(h).toString(16)
   }
 }

@@ -1,20 +1,17 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
 
 import { GalaxyConnection } from "@/lib/galaxy-connection"
 import { PrisonBotLogic, type BotSettings } from "@/lib/prison-bot-logic"
-
-
 
 export default function GalaxyPrisonBot() {
   const { toast } = useToast()
@@ -54,20 +51,15 @@ export default function GalaxyPrisonBot() {
 
   /* ================= REFS ================= */
 
-const galaxyRef = useRef<GalaxyConnection | null>(null)
-const botLogicRef = useRef<PrisonBotLogic | null>(null)
-const botRunningRef = useRef(false)
+  const galaxyRef = useRef<GalaxyConnection | null>(null)
+  const botRef = useRef<PrisonBotLogic | null>(null)
 
-const connectionRef = useRef<GalaxyConnection | null>(null)
-const botRef = useRef<PrisonBotLogic | null>(null)
-
-const settingsRef = useRef(settings)
-const filtersRef = useRef({
-  blackClan: [] as string[],
-  blackNick: [] as string[],
-  whiteClan: [] as string[],
-  whiteNick: [] as string[],
-})
+  const filtersRef = useRef({
+    blackClan: [] as string[],
+    blackNick: [] as string[],
+    whiteClan: [] as string[],
+    whiteNick: [] as string[],
+  })
 
   /* ================= LOGGING ================= */
 
@@ -78,60 +70,71 @@ const filtersRef = useRef({
 
   /* ================= CONNECTION ================= */
 
-  const connect = async () => {
-  if (isConnected) return
+  const connect = () => {
+    if (isConnected) return
+    if (!recoveryCode.trim()) {
+      toast({ title: "Recovery code required", variant: "destructive" })
+      return
+    }
 
-  try {
-    const conn = new GalaxyConnection()
+    const galaxy = new GalaxyConnection()
+    galaxyRef.current = galaxy
 
-    conn.onLog((msg: string) => addLog(msg))
+    galaxy.onLog((msg) => addLog(msg))
 
-    await conn.connect(recoveryCode)
+    galaxy.onConnected(() => {
+      setIsConnected(true)
+      toast({ title: "Connected to Galaxy" })
+    })
 
-    connectionRef.current = conn
-    setIsConnected(true)
+    galaxy.onDisconnected(() => {
+      setIsConnected(false)
+      setBotRunning(false)
+      botRef.current = null
+      toast({ title: "Disconnected", variant: "destructive" })
+    })
+
+    galaxy.onUserJoin((user) => {
+      const bot = botRef.current
+      if (!bot || !botRunning) return
+
+      if (bot.shouldTargetUser(user.nick, user.clan)) {
+        bot.addTarget(user.id)
+        addLog(`🎯 Target acquired: ${user.nick}`)
+      }
+    })
+
+    galaxy.onUserPart((userId) => {
+      botRef.current?.removeTarget(userId)
+    })
+
+    galaxy.onPlanetJoined(() => {
+      addLog(`🌍 Joined planet: ${planetName}`)
+    })
+
+    galaxy.connect(recoveryCode)
 
     botRef.current = new PrisonBotLogic(
       settings,
       filtersRef.current,
-      conn
+      galaxy
     )
-
-    toast({ title: "Connected to Galaxy" })
-  } catch (e: any) {
-    toast({
-      title: "Connection failed",
-      description: e?.message || "Unknown error",
-      variant: "destructive",
-    })
   }
-}
 
   const disconnect = () => {
-    botLogicRef.current?.stop()
     galaxyRef.current?.disconnect()
-
-    botLogicRef.current = null
     galaxyRef.current = null
-
+    botRef.current = null
     setIsConnected(false)
     setBotRunning(false)
-    botRunningRef.current = false
-
-    toast({ title: "Disconnected" })
   }
 
   /* ================= BOT ================= */
 
   const startBot = () => {
-    if (!galaxyRef.current || !botLogicRef.current) return
-
+    if (!isConnected || !botRef.current) return
     setBotRunning(true)
-    botRunningRef.current = true
-
-    botLogicRef.current.start()
-    addLog("⚡ Bot started")
-    toast({ title: "Bot started" })
+    addLog("⚡ Bot armed")
   }
 
   /* ================= EFFECTS ================= */
@@ -144,17 +147,18 @@ const filtersRef = useRef({
       whiteNick: whiteNick.split("\n").filter(Boolean),
     }
 
-    botLogicRef.current?.updateFilters(filtersRef.current)
+    botRef.current?.updateFilters(filtersRef.current)
   }, [blackClan, blackNick, whiteClan, whiteNick])
 
   useEffect(() => {
-    botLogicRef.current?.updateSettings(settings)
+    botRef.current?.updateSettings(settings)
   }, [settings])
 
-  /* ================= TEMP PLANET ================= */
+  /* ================= ACTIONS ================= */
 
   const travelToPlanet = () => {
-    addLog(`🌍 Traveling to planet: ${planetName}`)
+    if (!galaxyRef.current) return
+    galaxyRef.current.joinPlanet(planetName)
   }
 
   /* ================= UI ================= */
@@ -163,7 +167,7 @@ const filtersRef = useRef({
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white p-4">
       <Toaster />
 
-      <h1 className="text-3xl font-extrabold text-center text-purple-400 mb-1 tracking-wide">
+      <h1 className="text-3xl font-extrabold text-center text-purple-400 mb-1">
         Storm-The Legend Killer
       </h1>
       <p className="text-center text-gray-400 mb-6 text-sm">
@@ -171,7 +175,7 @@ const filtersRef = useRef({
       </p>
 
       <div className="mx-auto max-w-2xl">
-        <Card className="bg-black/70 border border-purple-500/30 backdrop-blur shadow-[0_0_40px_rgba(168,85,247,0.25)]">
+        <Card className="bg-black/70 border border-purple-500/30">
           <CardContent className="space-y-6 pt-6">
 
             {/* STATUS */}
@@ -198,6 +202,7 @@ const filtersRef = useRef({
                 <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
               </TabsList>
 
+              {/* MAIN */}
               <TabsContent value="main" className="space-y-4">
                 <div>
                   <Label>Recovery Code</Label>
@@ -211,11 +216,7 @@ const filtersRef = useRef({
                   <Button onClick={connect} disabled={isConnected}>
                     Connect
                   </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={disconnect}
-                    disabled={!isConnected}
-                  >
+                  <Button variant="destructive" onClick={disconnect}>
                     Disconnect
                   </Button>
                 </div>
@@ -240,6 +241,7 @@ const filtersRef = useRef({
                 </Button>
               </TabsContent>
 
+              {/* BLACKLIST */}
               <TabsContent value="blacklist">
                 <Textarea
                   placeholder="Blacklisted clans"
@@ -253,6 +255,7 @@ const filtersRef = useRef({
                 />
               </TabsContent>
 
+              {/* WHITELIST */}
               <TabsContent value="whitelist">
                 <Textarea
                   placeholder="Whitelisted clans"
@@ -288,10 +291,7 @@ const filtersRef = useRef({
                   </div>
                 ) : (
                   logs.map((log, i) => (
-                    <div
-                      key={i}
-                      dangerouslySetInnerHTML={{ __html: log }}
-                    />
+                    <div key={i}>{log}</div>
                   ))
                 )}
               </div>

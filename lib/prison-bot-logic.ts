@@ -1,4 +1,4 @@
-// Core prison bot logic (merged & hardened)
+// Core prison bot logic (FINAL – browser & Vercel safe)
 
 import { GalaxyConnection } from "./galaxy-connection"
 
@@ -35,7 +35,7 @@ export interface FilterLists {
 
 enum BotState {
   IDLE = "IDLE",
-  JOIN_WAIT = "JOIN_WAIT",     // Galaxy 3-sec rule
+  JOIN_WAIT = "JOIN_WAIT",
   ACTIVE = "ACTIVE",
   ACTION = "ACTION",
   DISCONNECTING = "DISCONNECTING",
@@ -45,52 +45,38 @@ enum BotState {
 // ================== MAIN LOGIC ==================
 
 export class PrisonBotLogic {
-
   // ===== FLAGS =====
   private isAttacking = false
   private isDefending = false
-  private isCaught = false
   private cooldownUntil = 0
+  private inFlight = false
 
-  // ===== CORE DATA =====
+  // ===== CORE =====
   private settings: BotSettings
   private filters: FilterLists
-  private connection!: GalaxyConnection
+  private connection: GalaxyConnection
 
-  private currentPlanetId: string | null = null
-  private targetUsers: Set<string> = new Set()
-
-  // ===== STATE =====
+  private targetUsers = new Set<string>()
   private state: BotState = BotState.IDLE
   private joinReadyAt = 0
-  private inFlight = false
-  private cycleId = 0
 
-  // ===== TIMERS =====
-  private attackTimer: NodeJS.Timeout | null = null
-  private defenseTimer: NodeJS.Timeout | null = null
-  private reconnectTimer: NodeJS.Timeout | null = null
-  private caughtTimer: NodeJS.Timeout | null = null
+  // ===== TIMERS (browser-safe) =====
+  private attackTimer: number | null = null
+  private defenseTimer: number | null = null
+  private reconnectTimer: number | null = null
 
   constructor(
-  settings: BotSettings,
-  filters: FilterLists,
-  connection?: GalaxyConnection
-) {
-  this.settings = settings
-  this.filters = filters
+    settings: BotSettings,
+    filters: FilterLists,
+    connection: GalaxyConnection
+  ) {
+    this.settings = settings
+    this.filters = filters
+    this.connection = connection
 
-  if (!connection) {
-    console.warn("PrisonBotLogic: GalaxyConnection missing – bot idle")
-    return
+    // 🔒 LOCKED HOOK
+    this.connection.onAfterAction(() => this.onAfterAction())
   }
-
-  this.connection = connection
-
-  this.connection.onAfterAction?.(() => {
-    this.onAfterAction()
-  })
-}
 
   // ===================================================
   // AFTER ACTION CLEANUP
@@ -101,14 +87,15 @@ export class PrisonBotLogic {
 
     this.isAttacking = false
     this.isDefending = false
-    this.isCaught = false
+    this.inFlight = false
 
-    // Cooldown 5–8 sec
-    this.cooldownUntil = Date.now() + (5000 + Math.random() * 3000)
+    // cooldown 5–8 sec
+    this.cooldownUntil = Date.now() + 5000 + Math.random() * 3000
 
-    // Immediate cycle (competitive)
     if (this.settings.disconnectAction) {
-      this.nextCycle("after_action")
+      this.nextCycle()
+    } else {
+      this.state = BotState.ACTIVE
     }
   }
 
@@ -118,8 +105,6 @@ export class PrisonBotLogic {
 
   updateSettings(settings: BotSettings) {
     this.settings = settings
-    this.restartAttack()
-    this.restartDefense()
   }
 
   updateFilters(filters: FilterLists) {
@@ -127,20 +112,20 @@ export class PrisonBotLogic {
   }
 
   // ===================================================
-  // TARGET LOGIC
+  // TARGET FILTERING
   // ===================================================
 
-  shouldTargetUser(username: string, clan: string): boolean {
+  shouldTargetUser(nick: string, clan: string): boolean {
     if (this.settings.prisonAll) return true
 
     if (
       this.filters.whiteClan.includes(clan) ||
-      this.filters.whiteNick.includes(username)
+      this.filters.whiteNick.includes(nick)
     ) return false
 
     if (
       this.filters.blackClan.includes(clan) ||
-      this.filters.blackNick.includes(username)
+      this.filters.blackNick.includes(nick)
     ) return true
 
     return false
@@ -158,34 +143,30 @@ export class PrisonBotLogic {
     this.targetUsers.clear()
   }
 
-  getTargets(): string[] {
-    return Array.from(this.targetUsers)
-  }
-
   // ===================================================
   // INTERVAL HELPERS
   // ===================================================
 
-  private calculateInterval(
+  private calcInterval(
     min: string,
     max: string,
     plusMinus: string,
     usePM: boolean
   ): number {
-    const minVal = Number(min)
-    const maxVal = Number(max)
-    const pmVal = Number(plusMinus)
+    const a = Number(min)
+    const b = Number(max)
+    const pm = Number(plusMinus)
 
     if (usePM) {
-      const base = (minVal + maxVal) / 2
-      return Math.max(0, base + (Math.random() * 2 - 1) * pmVal)
+      const base = (a + b) / 2
+      return Math.max(0, base + (Math.random() * 2 - 1) * pm)
     }
 
-    return Math.max(0, minVal + Math.random() * (maxVal - minVal))
+    return Math.max(0, a + Math.random() * (b - a))
   }
 
-  private getAttackInterval(): number {
-    return this.calculateInterval(
+  private getAttackDelay() {
+    return this.calcInterval(
       this.settings.attackMin,
       this.settings.attackMax,
       this.settings.attackPlusMinus,
@@ -193,8 +174,8 @@ export class PrisonBotLogic {
     )
   }
 
-  private getDefenseInterval(): number {
-    return this.calculateInterval(
+  private getDefenseDelay() {
+    return this.calcInterval(
       this.settings.defenseMin,
       this.settings.defenseMax,
       this.settings.defensePlusMinus,
@@ -203,7 +184,7 @@ export class PrisonBotLogic {
   }
 
   // ===================================================
-  // STATE GUARDS
+  // GUARDS
   // ===================================================
 
   private canAct(): boolean {
@@ -218,109 +199,70 @@ export class PrisonBotLogic {
   // TIMERS
   // ===================================================
 
-  startAttackTimer(callback: () => void) {
+  startAttack(callback: () => void) {
     if (!this.canAct()) return
     if (this.isAttacking || this.isDefending) return
 
     this.isAttacking = true
     this.state = BotState.ACTION
 
-    if (this.attackTimer) clearTimeout(this.attackTimer)
-
-    const interval = this.getAttackInterval()
-
-    this.attackTimer = setTimeout(() => {
+    this.attackTimer = window.setTimeout(() => {
       this.inFlight = true
       callback()
       this.isAttacking = false
-    }, interval)
+    }, this.getAttackDelay())
   }
 
-  startDefenseTimer(callback: () => void) {
+  startDefense(callback: () => void) {
     if (!this.canAct()) return
     if (this.isDefending || this.isAttacking) return
 
     this.isDefending = true
     this.state = BotState.ACTION
 
-    if (this.defenseTimer) clearTimeout(this.defenseTimer)
-
-    const interval = this.getDefenseInterval()
-
-    this.defenseTimer = setTimeout(() => {
+    this.defenseTimer = window.setTimeout(() => {
       this.inFlight = true
       callback()
       this.isDefending = false
-    }, interval)
+    }, this.getDefenseDelay())
   }
 
   stopTimers() {
-    if (this.attackTimer) {
-      clearTimeout(this.attackTimer)
-      this.attackTimer = null
-    }
-    if (this.defenseTimer) {
-      clearTimeout(this.defenseTimer)
-      this.defenseTimer = null
-    }
-    if (this.caughtTimer) {
-      clearTimeout(this.caughtTimer)
-      this.caughtTimer = null
-    }
-  }
-
-  // ===================================================
-  // RESTART LOGIC
-  // ===================================================
-
-  private restartAttack() {
-    if (!this.settings.prisonAll) return
-    this.stopTimers()
-
-    this.startAttackTimer(() => {
-      // TODO: real prison/attack call
-      // this.connection.prisonUser(targetId)
-    })
-  }
-
-  private restartDefense() {
-    this.stopTimers()
-
-    this.startDefenseTimer(() => {
-      // TODO: real defence logic
-    })
-  }
-
-  // ===================================================
-  // DEFENCE TRIGGER (CALL WHEN BOT IS TARGETED)
-  // ===================================================
-
-  public onEnemyActionDetected() {
-    if (this.state === BotState.ACTION) return
-    this.nextCycle("defence")
-  }
-
-  // ===================================================
-  // DISCONNECT / RECONNECT (FAST LOOP)
-  // ===================================================
-
-  private nextCycle(reason: string) {
-    if (!this.settings.reconnect) return
-
-    this.cycleId++
-    this.inFlight = false
-    this.stopTimers()
-
-    this.state = BotState.DISCONNECTING   
-    this.connection.disconnect?.()
-    this.state = BotState.RECONNECTING
-
+    if (this.attackTimer) clearTimeout(this.attackTimer)
+    if (this.defenseTimer) clearTimeout(this.defenseTimer)
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
 
-    // ⚡ competitive fast reconnect
-    this.reconnectTimer = setTimeout(() => {
-if (this.currentPlanetId) {
-  this.connection.connect?.(this.currentPlanetId)
-}    }, 120)
+    this.attackTimer = null
+    this.defenseTimer = null
+    this.reconnectTimer = null
+  }
+
+  // ===================================================
+  // DEFENCE TRIGGER
+  // ===================================================
+
+  onEnemyActionDetected() {
+    if (this.state === BotState.ACTION) return
+    this.nextCycle()
+  }
+
+  // ===================================================
+  // DISCONNECT / RECONNECT LOOP
+  // ===================================================
+
+  private nextCycle() {
+    if (!this.settings.reconnect) return
+
+    this.stopTimers()
+    this.state = BotState.DISCONNECTING
+
+    this.connection.disconnect()
+    this.state = BotState.RECONNECTING
+
+    this.reconnectTimer = window.setTimeout(() => {
+      // UI layer will re-connect using recovery code
+      this.state = BotState.JOIN_WAIT
+      this.joinReadyAt = Date.now() + 3000
+    }, 150)
   }
 }
