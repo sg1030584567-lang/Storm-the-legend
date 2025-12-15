@@ -1,6 +1,6 @@
 // Core prison bot logic (merged & hardened)
 
-import { GalaxyConnection } from "./GalaxyConnection"
+import { GalaxyConnection } from "./galaxy-connection"
 
 // ================== SETTINGS & FILTERS ==================
 
