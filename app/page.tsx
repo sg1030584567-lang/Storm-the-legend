@@ -63,6 +63,61 @@ export default function GalaxyPrisonBot() {
     whiteNick: [] as string[],
   })
 
+// ============== CONNECTION HANDLERS ==============
+
+const connectionRef = useRef<GalaxyConnection | null>(null)
+const botRef = useRef<PrisonBotLogic | null>(null)
+
+const connect = async () => {
+  if (isConnected) return
+
+  try {
+    const conn = new GalaxyConnection({
+      onLog: (msg: string) =>
+        setLogs((l) => [...l, `[CONNECT] ${msg}`]),
+    })
+
+    await conn.connect(recoveryCode)
+
+    connectionRef.current = conn
+    setIsConnected(true)
+
+    botRef.current = new PrisonBotLogic(conn, settings, {
+      onLog: (msg) => setLogs((l) => [...l, msg]),
+    })
+
+    toast({ title: "Connected to Galaxy" })
+  } catch (e: any) {
+    toast({ title: "Connection failed", description: e?.message })
+  }
+}
+
+const disconnect = () => {
+  botRef.current?.stop()
+  connectionRef.current?.disconnect()
+
+  botRef.current = null
+  connectionRef.current = null
+
+  setBotRunning(false)
+  setIsConnected(false)
+
+  toast({ title: "Disconnected" })
+}
+
+const startBot = () => {
+  if (!botRef.current) return
+
+  botRef.current.start({
+    planet: planetName,
+    blacklist: { clan: blackClan, nick: blackNick },
+    whitelist: { clan: whiteClan, nick: whiteNick },
+  })
+
+  setBotRunning(true)
+  toast({ title: "Bot started" })
+}
+
   /* ================= LOGGING ================= */
 
   const addLog = useCallback((msg: string) => {
