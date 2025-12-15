@@ -58,14 +58,16 @@ const galaxyRef = useRef<GalaxyConnection | null>(null)
 const botLogicRef = useRef<PrisonBotLogic | null>(null)
 const botRunningRef = useRef(false)
 
-const botRef = useRef<PrisonBotLogic | null>(null) // ✅ ADD THIS
+const connectionRef = useRef<GalaxyConnection | null>(null)
+const botRef = useRef<PrisonBotLogic | null>(null)
 
-  const filtersRef = useRef({
-    blackClan: [] as string[],
-    blackNick: [] as string[],
-    whiteClan: [] as string[],
-    whiteNick: [] as string[],
-  })
+const settingsRef = useRef(settings)
+const filtersRef = useRef({
+  blackClan: [] as string[],
+  blackNick: [] as string[],
+  whiteClan: [] as string[],
+  whiteNick: [] as string[],
+})
 
   /* ================= LOGGING ================= */
 
