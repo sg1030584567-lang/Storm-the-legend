@@ -54,9 +54,11 @@ export default function GalaxyPrisonBot() {
 
   /* ================= REFS ================= */
 
-  const galaxyRef = useRef<GalaxyConnection | null>(null)
-  const botLogicRef = useRef<PrisonBotLogic | null>(null)
-  const botRunningRef = useRef(false)
+const galaxyRef = useRef<GalaxyConnection | null>(null)
+const botLogicRef = useRef<PrisonBotLogic | null>(null)
+const botRunningRef = useRef(false)
+
+const botRef = useRef<PrisonBotLogic | null>(null) // ✅ ADD THIS
 
   const filtersRef = useRef({
     blackClan: [] as string[],
