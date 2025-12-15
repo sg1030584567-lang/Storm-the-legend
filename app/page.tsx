@@ -194,8 +194,3 @@ export default function GalaxyPrisonBot() {
   )
 }
 
-  )
-}
-
-
-
