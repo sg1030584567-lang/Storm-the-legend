@@ -140,56 +140,210 @@ export default function GalaxyPrisonBot() {
 
   /* ================= UI ================= */
 
-  return (
-    <div className="min-h-screen bg-black text-white p-4">
-      <h1 className="text-3xl font-bold text-center text-purple-400 mb-1">
-        Storm-The Legend Killer
-      </h1>
-      <p className="text-center text-gray-400 mb-6">
-        project by AWARA_HUN
-      </p>
+return (
+  <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white p-4">
+    <Toaster />
 
-      {/* ===== STORM LOG CONSOLE ===== */}
-      <div className="mt-6">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-semibold text-purple-400 tracking-wider">
-            ⚡ STORM CONSOLE
-          </span>
+    {/* ===== HEADER ===== */}
+    <h1 className="text-3xl font-extrabold text-center text-purple-400 mb-1 tracking-wide">
+      Storm-The Legend Killer
+    </h1>
+    <p className="text-center text-gray-400 mb-6 text-sm">
+      project by AWARA_HUN
+    </p>
 
-          <button
-            onClick={() => setLogs([])}
-            className="text-xs text-red-400 hover:text-red-300 transition"
-          >
-            Clear
-          </button>
-        </div>
+    <div className="mx-auto max-w-2xl">
+      <Card className="bg-black/70 border border-purple-500/30 backdrop-blur shadow-[0_0_40px_rgba(168,85,247,0.25)]">
+        <CardContent className="space-y-6 pt-6">
 
-        <div
-          className="
-            h-52 overflow-y-auto rounded-xl
-            bg-black/70 backdrop-blur
-            border border-purple-500/30
-            shadow-[0_0_25px_rgba(168,85,247,0.25)]
-            p-3
-            text-xs font-mono
-            text-green-400
-          "
-        >
-          {logs.length === 0 ? (
-            <div className="text-gray-500 italic">
-              Waiting for storm activity...
-            </div>
-          ) : (
-            logs.map((log, i) => (
+          {/* ===== STORM AVATAR (STATE SYNCED) ===== */}
+          <div className="flex justify-center">
+            <div className="relative w-28 h-28 flex items-center justify-center">
               <div
-                key={i}
-                className="mb-1 leading-snug"
-                dangerouslySetInnerHTML={{ __html: log }}
+                className={`absolute inset-0 rounded-full border-2 animate-spin
+                  ${
+                    !isConnected
+                      ? "border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.8)]"
+                      : botRunning
+                      ? "border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.9)]"
+                      : "border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.9)]"
+                  }
+                `}
               />
-            ))
-          )}
-        </div>
-      </div>
+              <div
+                className={`w-14 h-14 rounded-full animate-pulse
+                  ${
+                    !isConnected
+                      ? "bg-red-500"
+                      : botRunning
+                      ? "bg-green-500"
+                      : "bg-yellow-400"
+                  }
+                `}
+              />
+            </div>
+          </div>
+
+          {/* ===== STATUS ROW ===== */}
+          <div className="flex justify-between text-sm text-gray-300">
+            <span>
+              Connection:{" "}
+              <b className={isConnected ? "text-green-400" : "text-red-400"}>
+                {isConnected ? "Connected" : "Disconnected"}
+              </b>
+            </span>
+            <span>
+              Bot:{" "}
+              <b className={botRunning ? "text-green-400" : "text-gray-400"}>
+                {botRunning ? "Armed" : "Idle"}
+              </b>
+            </span>
+          </div>
+
+          {/* ===== TABS ===== */}
+          <Tabs defaultValue="main">
+            <TabsList className="grid grid-cols-4 bg-zinc-900">
+              <TabsTrigger value="main">Main</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
+              <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
+            </TabsList>
+
+            {/* ===== MAIN TAB ===== */}
+            <TabsContent value="main" className="space-y-4">
+              <div>
+                <Label>Recovery Code</Label>
+                <Input
+                  value={recoveryCode}
+                  onChange={(e) => setRecoveryCode(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={connect} disabled={isConnected}>
+                  Connect
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={disconnect}
+                  disabled={!isConnected}
+                >
+                  Disconnect
+                </Button>
+              </div>
+
+              <div>
+                <Label>Planet</Label>
+                <Input
+                  value={planetName}
+                  onChange={(e) => setPlanetName(e.target.value)}
+                />
+                <Button
+                  className="mt-2"
+                  onClick={travelToPlanet}
+                  disabled={!isConnected}
+                >
+                  Travel
+                </Button>
+              </div>
+
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700"
+                onClick={startBot}
+                disabled={!isConnected}
+              >
+                Start Bot
+              </Button>
+            </TabsContent>
+
+            {/* ===== SETTINGS ===== */}
+            <TabsContent value="settings">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={settings.prisonAll}
+                    onCheckedChange={(v) =>
+                      setSettings({ ...settings, prisonAll: v })
+                    }
+                  />
+                  <span>Prison All</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={settings.reconnect}
+                    onCheckedChange={(v) =>
+                      setSettings({ ...settings, reconnect: v })
+                    }
+                  />
+                  <span>Auto Reconnect</span>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* ===== BLACKLIST ===== */}
+            <TabsContent value="blacklist" className="space-y-2">
+              <Textarea
+                placeholder="Blacklisted clans"
+                value={blackClan}
+                onChange={(e) => setBlackClan(e.target.value)}
+              />
+              <Textarea
+                placeholder="Blacklisted nicks"
+                value={blackNick}
+                onChange={(e) => setBlackNick(e.target.value)}
+              />
+            </TabsContent>
+
+            {/* ===== WHITELIST ===== */}
+            <TabsContent value="whitelist" className="space-y-2">
+              <Textarea
+                placeholder="Whitelisted clans"
+                value={whiteClan}
+                onChange={(e) => setWhiteClan(e.target.value)}
+              />
+              <Textarea
+                placeholder="Whitelisted nicks"
+                value={whiteNick}
+                onChange={(e) => setWhiteNick(e.target.value)}
+              />
+            </TabsContent>
+          </Tabs>
+
+          {/* ===== STORM CONSOLE ===== */}
+          <div className="mt-6">
+            <div className="mb-2 flex justify-between items-center">
+              <span className="text-sm font-semibold text-purple-400">
+                ⚡ STORM CONSOLE
+              </span>
+              <button
+                onClick={() => setLogs([])}
+                className="text-xs text-red-400 hover:text-red-300"
+              >
+                Clear
+              </button>
+            </div>
+
+            <div className="h-52 overflow-y-auto rounded-xl bg-black/70 border border-purple-500/30 p-3 text-xs font-mono text-green-400">
+              {logs.length === 0 ? (
+                <div className="text-gray-500 italic">
+                  Waiting for storm activity...
+                </div>
+              ) : (
+                logs.map((log, i) => (
+                  <div
+                    key={i}
+                    className="mb-1 leading-snug"
+                    dangerouslySetInnerHTML={{ __html: log }}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+        </CardContent>
+      </Card>
     </div>
-  )
+  </div>
+)
 }
