@@ -319,7 +319,8 @@ export class PrisonBotLogic {
 
     // ⚡ competitive fast reconnect
     this.reconnectTimer = setTimeout(() => {
-      this.connection.connect?.()
-    }, 120)
+if (this.currentPlanetId) {
+  this.connection.connect?.(this.currentPlanetId)
+}    }, 120)
   }
 }
