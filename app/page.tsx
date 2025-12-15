@@ -90,7 +90,6 @@ const connect = async () => {
   } catch (e: any) {
     toast({ title: "Connection failed", description: e?.message })
   }
-}
 
 const disconnect = () => {
   botRef.current?.stop()
