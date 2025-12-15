@@ -106,14 +106,26 @@ const disconnect = () => {
 }
 
 const startBot = () => {
-  if (!botRef.current) return
+  if (!galaxyRef.current) return
 
-  botRef.current.start({
-    planet: planetName,
-    blacklist: { clan: blackClan, nick: blackNick },
-    whitelist: { clan: whiteClan, nick: whiteNick },
-  })
+  setBotRunning(true)
+  botRunningRef.current = true
 
+  botLogicRef.current = new PrisonBotLogic(
+    galaxyRef.current,
+    settings,
+    {
+      blackClan,
+      blackNick,
+      whiteClan,
+      whiteNick,
+    },
+    addLog
+  )
+
+  botLogicRef.current.start()
+  addLog("⚡ Bot started")
+}
   setBotRunning(true)
   toast({ title: "Bot started" })
 }
@@ -181,16 +193,6 @@ const startBot = () => {
     galaxyRef.current?.disconnect()
     setBotRunning(false)
     botRunningRef.current = false
-  }
-
-  const startBot = () => {
-    setBotRunning(true)
-    botRunningRef.current = true
-    addLog("Bot started")
-  }
-
-  const travelToPlanet = () => {
-    galaxyRef.current?.joinPlanet(planetName)
   }
 
   /* ================= UI ================= */
