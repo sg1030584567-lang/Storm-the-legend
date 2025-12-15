@@ -88,7 +88,13 @@ const botRef = useRef<PrisonBotLogic | null>(null) // ✅ ADD THIS
 
     setIsConnected(true)
 
-      onLog: (msg: string) => addLog(msg),
+      })
+botRef.current = new PrisonBotLogic(
+  settings,
+  filtersRef.current,
+  conn,
+  (msg: string) => addLog(msg)
+)onLog: (msg: string) => addLog(msg),
 })botRef.current = new PrisonBotLogic(
   settings,
   filtersRef.current,
