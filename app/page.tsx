@@ -84,7 +84,6 @@ export default function GalaxyPrisonBot() {
 
     await conn.connect(recoveryCode)
 
-    connectionRef.current = conn
     setIsConnected(true)
 
     botRef.current = new PrisonBotLogic(conn, settings, {
