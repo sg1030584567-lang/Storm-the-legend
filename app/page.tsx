@@ -75,38 +75,31 @@ export default function GalaxyPrisonBot() {
   /* ================= CONNECTION ================= */
 
   const connect = async () => {
-    if (isConnected) return
-    if (!recoveryCode.trim()) {
-      toast({ title: "Recovery code required", variant: "destructive" })
-      return
-    }
+  if (isConnected) return
 
-    try {
-        onLog: (msg: string) => addLog(msg),
-})const conn = new GalaxyConnection()
-conn.onLog((msg: string) => addLog(msg))
+  try {
+    const conn = new GalaxyConnection()
 
-      await conn.connect(recoveryCode)
+    conn.onLog((msg: string) => addLog(msg))
 
-      galaxyRef.current = conn
-      setIsConnected(true)
+    await conn.connect(recoveryCode)
 
-      botLogicRef.current = new PrisonBotLogic(
-        conn,
-        settings,
-        filtersRef.current,
-        addLog
-      )
+    connectionRef.current = conn
+    setIsConnected(true)
 
-      toast({ title: "Connected to Galaxy" })
-    } catch (e: any) {
-      toast({
-        title: "Connection failed",
-        description: e?.message || "Unknown error",
-        variant: "destructive",
-      })
-    }
+    botRef.current = new PrisonBotLogic(conn, settings, {
+      onLog: (msg: string) => addLog(msg),
+    })
+
+    toast({ title: "Connected to Galaxy" })
+  } catch (e: any) {
+    toast({
+      title: "Connection failed",
+      description: e?.message || "Unknown error",
+      variant: "destructive",
+    })
   }
+}
 
   const disconnect = () => {
     botLogicRef.current?.stop()
