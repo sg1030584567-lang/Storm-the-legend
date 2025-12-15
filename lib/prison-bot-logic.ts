@@ -311,9 +311,8 @@ export class PrisonBotLogic {
     this.inFlight = false
     this.stopTimers()
 
-    this.state = BotState.DISCONNECTING
-    this.connection.disconnect?.(reason)
-
+    this.state = BotState.DISCONNECTING   
+    this.connection.disconnect?.()
     this.state = BotState.RECONNECTING
 
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
