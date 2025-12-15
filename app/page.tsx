@@ -91,12 +91,15 @@ const filtersRef = useRef({
     connectionRef.current = conn
     setIsConnected(true)
 
-    botRef.current = new PrisonBotLogic(
       settings,
-      filtersRef.current,
-      conn,
-      (msg: string) => addLog(msg)
-    )
+  filtersRef.current,
+  conn,
+  (msg: string) => addLog(msg)
+)botRef.current = new PrisonBotLogic(
+  settings,
+  filtersRef.current,
+  conn
+)
 
     toast({ title: "Connected to Galaxy" })
   } catch (e: any) {
