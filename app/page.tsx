@@ -147,9 +147,7 @@ export default function GalaxyPrisonBot() {
     botRef.current = bot
 
     godRef.current = new GodCore(bot)
-    galaxy.onEnemyPrison((enemyId) => {
       bot.onEnemyPrisoned(enemyId)
-    })
   }
 
   const disconnect = () => {
