@@ -1,4 +1,5 @@
-// Galaxy WebSocket connection handler (Browser + Vercel SAFE)
+// Galaxy WebSocket connection handler (IRC-like protocol)
+// LOCKED FINAL VERSION — Stable & Bot-safe (Phase 7.2)
 
 export interface UserData {
   id: string
@@ -7,6 +8,7 @@ export interface UserData {
   level: string
 }
 
+type EnemyPrisonCallback = (enemyId: string) => void
 type LogCallback = (message: string) => void
 type ConnectedCallback = () => void
 type DisconnectedCallback = () => void
@@ -25,6 +27,7 @@ export class GalaxyConnection {
 
   /* ================= CALLBACKS ================= */
 
+  private enemyPrisonCallbacks: EnemyPrisonCallback[] = []
   private logCallbacks: LogCallback[] = []
   private connectedCallbacks: ConnectedCallback[] = []
   private disconnectedCallbacks: DisconnectedCallback[] = []
@@ -34,40 +37,42 @@ export class GalaxyConnection {
   private planetJoinedCallbacks: PlanetJoinedCallback[] = []
   private afterActionCallbacks: AfterActionCallback[] = []
 
-  constructor() {}
+  /* ================= REGISTRATION ================= */
 
-  /* ================= CALLBACK REG ================= */
+  onEnemyPrison(cb: EnemyPrisonCallback) {
+    this.enemyPrisonCallbacks.push(cb)
+  }
 
   onLog(cb: LogCallback) {
-    cb && this.logCallbacks.push(cb)
+    this.logCallbacks.push(cb)
   }
 
   onConnected(cb: ConnectedCallback) {
-    cb && this.connectedCallbacks.push(cb)
+    this.connectedCallbacks.push(cb)
   }
 
   onDisconnected(cb: DisconnectedCallback) {
-    cb && this.disconnectedCallbacks.push(cb)
+    this.disconnectedCallbacks.push(cb)
   }
 
   onUserJoin(cb: UserJoinCallback) {
-    cb && this.userJoinCallbacks.push(cb)
+    this.userJoinCallbacks.push(cb)
   }
 
   onUserPart(cb: UserPartCallback) {
-    cb && this.userPartCallbacks.push(cb)
+    this.userPartCallbacks.push(cb)
   }
 
   onAuthenticated(cb: AuthenticatedCallback) {
-    cb && this.authenticatedCallbacks.push(cb)
+    this.authenticatedCallbacks.push(cb)
   }
 
   onPlanetJoined(cb: PlanetJoinedCallback) {
-    cb && this.planetJoinedCallbacks.push(cb)
+    this.planetJoinedCallbacks.push(cb)
   }
 
   onAfterAction(cb: AfterActionCallback) {
-    cb && this.afterActionCallbacks.push(cb)
+    this.afterActionCallbacks.push(cb)
   }
 
   /* ================= INTERNAL ================= */
@@ -77,34 +82,34 @@ export class GalaxyConnection {
     this.logCallbacks.forEach(cb => cb(msg))
   }
 
-  private send(cmd: string) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(cmd + "\r\n")
+  private send(str: string) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(str + "\r\n")
     }
   }
 
-  /* ================= MESSAGE ================= */
+  /* ================= MESSAGE HANDLER ================= */
 
   private receive(data: string) {
-    const lines = data.split("\r\n")
+    const lines = data.replace(/\r\n$/, "").split("\r\n")
 
     for (const line of lines) {
       if (!line.trim()) continue
 
       const parts = line.split(/\s+/)
-      const cmd = parts[0]
-      const payload = line.includes(":")
-        ? line.substring(line.indexOf(":") + 1)
-        : ""
+      const command = parts[0]
+      const colonIndex = line.indexOf(":")
+      const content =
+        colonIndex !== -1 ? line.substring(colonIndex + 1).trim() : ""
 
-      switch (cmd) {
+      switch (command) {
         case "PING":
           this.send("PONG")
           break
 
         case "HAAAPSI":
-          this.hash = this.makeHash(parts[1])
           this.send("RECOVER " + this.recover)
+          this.hash = this.genHash(parts[1])
           break
 
         case "999":
@@ -114,7 +119,9 @@ export class GalaxyConnection {
 
         case "REGISTER":
           this.myUserId = parts[1]
-          this.send(`USER ${parts[1]} ${parts[2]} ${parts[3]} ${this.hash}`)
+          this.send(
+            `USER ${parts[1]} ${parts[2]} ${parts[3]} ${this.hash}`
+          )
           break
 
         case "900":
@@ -122,17 +129,36 @@ export class GalaxyConnection {
           break
 
         case "JOIN":
-          this.handleJoin(parts)
+          this.parseJoin(parts)
           break
 
         case "353":
-          this.handleUserList(payload)
+          this.parseUserList(content)
           break
 
         case "PART":
         case "SLEEP":
           this.userPartCallbacks.forEach(cb => cb(parts[1]))
           break
+
+        case "PRISONED": {
+          const enemyId = parts[1]
+          if (enemyId && enemyId !== this.myUserId) {
+            this.enemyPrisonCallbacks.forEach(cb => cb(enemyId))
+          }
+          break
+        }
+
+        case "ACTION": {
+          const actionType = parts[1]
+          const targetId = parts[2]
+
+          // ACTION 3 = PRISON
+          if (actionType === "3" && targetId !== this.myUserId) {
+            this.enemyPrisonCallbacks.forEach(cb => cb(targetId))
+          }
+          break
+        }
 
         case "451":
         case "452":
@@ -144,40 +170,45 @@ export class GalaxyConnection {
 
   /* ================= PARSERS ================= */
 
-  private handleJoin(parts: string[]) {
+  private parseJoin(parts: string[]) {
     try {
       let nick = ""
-      let id = ""
+      let userId = ""
       let clan = ""
 
       if (parts[1] === "-") {
         nick = parts[2]
-        id = parts[3]
-        for (const p of parts) {
-          if (p.startsWith("[") && p.endsWith("]")) {
-            clan = p.slice(1, -1)
+        userId = parts[3]
+        for (let i = 4; i < parts.length; i++) {
+          if (parts[i]?.startsWith("[") && parts[i].endsWith("]")) {
+            clan = parts[i].slice(1, -1)
             break
           }
         }
       } else {
         nick = parts[1]
-        id = parts[2]
+        userId = parts[2]
       }
 
-      if (id && id !== this.myUserId) {
+      if (userId && userId !== this.myUserId) {
         this.userJoinCallbacks.forEach(cb =>
-          cb({ id, nick, clan, level: "1" })
+          cb({ id: userId, nick, clan, level: "1" })
         )
       }
     } catch {}
   }
 
-  private handleUserList(list: string) {
-    const p = list.split(" ")
-    for (let i = 0; i < p.length - 1; i++) {
-      if (/^\d+$/.test(p[i + 1]) && p[i + 1] !== this.myUserId) {
+  private parseUserList(content: string) {
+    const parts = content.split(" ")
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (/^\d+$/.test(parts[i + 1]) && parts[i + 1] !== this.myUserId) {
         this.userJoinCallbacks.forEach(cb =>
-          cb({ id: p[i + 1], nick: p[i], clan: "", level: "1" })
+          cb({
+            id: parts[i + 1],
+            nick: parts[i],
+            clan: "",
+            level: "1",
+          })
         )
       }
     }
@@ -201,38 +232,45 @@ export class GalaxyConnection {
       this.disconnectedCallbacks.forEach(cb => cb())
     }
 
-    this.socket.onerror = () => this.disconnect()
+    this.socket.onerror = () => {
+      this.disconnect()
+    }
+
     this.socket.onmessage = e => this.receive(e.data)
   }
 
   disconnect() {
+    if (!this.socket) return
     try {
-      if (this.socket?.readyState === WebSocket.OPEN) {
+      if (this.socket.readyState === WebSocket.OPEN) {
         this.send("QUIT :disconnect")
       }
-      this.socket?.close()
+      this.socket.close()
     } catch {}
     this.socket = null
     this.authenticated = false
   }
 
-  /* ================= GAME ================= */
+  /* ================= GAME ACTIONS ================= */
 
   joinPlanet(name: string) {
-    this.authenticated && this.send("JOIN " + name)
+    if (this.authenticated) {
+      this.send("JOIN " + name)
+    }
   }
 
   prisonUser(userId: string) {
     if (!this.authenticated) return
+
     this.send("ACTION 3 " + userId)
+
+    // 🔔 Notify bot logic AFTER server delay
     setTimeout(() => {
       this.afterActionCallbacks.forEach(cb => cb())
     }, 300)
   }
 
-  standOnUser(userId: string) {
-    this.authenticated && this.send("FLY " + userId)
-  }
+  /* ================= STATE ================= */
 
   isConnected() {
     return this.socket?.readyState === WebSocket.OPEN
@@ -247,13 +285,16 @@ export class GalaxyConnection {
   }
 
   /* ================= HASH ================= */
-  // Browser-safe deterministic hash (crypto-free)
-  private makeHash(seed: string) {
-    let h = 0
-    for (let i = 0; i < seed.length; i++) {
-      h = (h << 5) - h + seed.charCodeAt(i)
-      h |= 0
-    }
-    return Math.abs(h).toString(16)
+
+  private genHash(code: string): string {
+    const md5 = this.md5(code)
+    return md5.split("").reverse().join("0").substr(5, 10)
+  }
+
+  private md5(str: string): string {
+    return require("crypto")
+      .createHash("md5")
+      .update(str)
+      .digest("hex")
   }
 }
