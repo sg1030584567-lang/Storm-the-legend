@@ -436,7 +436,3 @@ export default function GalaxyPrisonBot() {
     </div>
   )
 }
-
-export default GalaxyPrisonBot
-
-            
