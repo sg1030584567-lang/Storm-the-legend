@@ -416,9 +416,9 @@ export default function GalaxyPrisonBot() {
                   Clear
                 </button>
               </div>
-
-              <div className="h-52 overflow-y-auto rounded-xl bg-black border border-purple-500/30 p-3 text-xs">
-                {logs.length === 0 ? (
+                 
+                <div className="max-h-52 overflow-y-auto rounded-xl bg-black/70 border border-purple-500/30">
+                 {logs.length === 0 ? (
                   <div className="text-gray-500 italic">
                     Waiting for storm activity...
                   </div>
