@@ -51,6 +51,11 @@ export class PrisonBotLogic {
   private connection: GalaxyConnection
   private settings: BotSettings
   private filters: FilterLists
+  private currentPlanet: string | null = null
+  // 🔒 LOCKED — called from UI
+public setPlanet(name: string) {
+  this.currentPlanet = name
+}
 
   /* ===== CORE FLAGS ===== */
   private state: BotState = BotState.IDLE
