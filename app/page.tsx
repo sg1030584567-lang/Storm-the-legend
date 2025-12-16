@@ -1,4 +1,4 @@
-"use client"
+-"use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -416,14 +416,16 @@ export default function GalaxyPrisonBot() {
                   Clear
                 </button>
               </div>
-                 
-                <div className="max-h-52 overflow-y-auto rounded-xl bg-black/70 border border-purple-500/30">
-                 {logs.length === 0 ? (
+
+              <div className="max-h-52 overflow-y-auto rounded-xl bg-black/70 border border-purple-500/30 p-2 text-xs">
+                {logs.length === 0 ? (
                   <div className="text-gray-500 italic">
                     Waiting for storm activity...
                   </div>
                 ) : (
-                  logs.map((log, i) => <div key={i}>{log}</div>)
+                  logs.map((log, i) => (
+                    <div key={i}>{log}</div>
+                  ))
                 )}
               </div>
             </div>
@@ -434,3 +436,7 @@ export default function GalaxyPrisonBot() {
     </div>
   )
 }
+
+export default GalaxyPrisonBot
+
+            
