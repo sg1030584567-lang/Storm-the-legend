@@ -60,7 +60,8 @@ export default function GalaxyPrisonBot() {
 
   const galaxyRef = useRef<GalaxyConnection | null>(null)
   const botRef = useRef<PrisonBotLogic | null>(null)
-  const godRef = useRef<GodCore | null>(null)
+  
+// const godRef = useRef<GodCore | null>(null)
 
   const filtersRef = useRef({
     blackClan: [] as string[],

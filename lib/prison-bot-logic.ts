@@ -1,3 +1,5 @@
+"use client"
+
 // Prison Bot Logic — GOD MODE (Phase 7.2)
 // LOCKED • STABLE • CLEAN
 

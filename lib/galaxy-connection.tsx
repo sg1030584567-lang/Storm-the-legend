@@ -1,3 +1,5 @@
+"use client"
+
 // Galaxy WebSocket connection handler (IRC-like protocol)
 // LOCKED FINAL VERSION — Stable & Bot-safe (Phase 7.2)
 
@@ -281,10 +283,16 @@ export class GalaxyConnection {
     return md5.split("").reverse().join("0").substr(5, 10)
   }
 
-  private md5(str: string): string {
     return require("crypto")
-      .createHash("md5")
-      .update(str)
-      .digest("hex")
+    .createHash("md5")
+    .update(str)
+    .digest("hex")
+private md5(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0
   }
+  return Math.abs(hash).toString(16)
+}
 }
