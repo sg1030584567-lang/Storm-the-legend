@@ -10,6 +10,7 @@ export interface UserData {
   level: string
 }
 
+type EnemyPrisonCallback = (enemyId: string) => void
 type LogCallback = (message: string) => void
 type ConnectedCallback = () => void
 type DisconnectedCallback = () => void
@@ -18,7 +19,6 @@ type UserPartCallback = (userId: string) => void
 type AuthenticatedCallback = () => void
 type PlanetJoinedCallback = () => void
 type AfterActionCallback = () => void
-type EnemyPrisonCallback = (enemyId: string) => void
 
 export class GalaxyConnection {
   private socket: WebSocket | null = null
@@ -29,6 +29,7 @@ export class GalaxyConnection {
 
   /* ================= CALLBACKS ================= */
 
+  private enemyPrisonCallbacks: EnemyPrisonCallback[] = []
   private logCallbacks: LogCallback[] = []
   private connectedCallbacks: ConnectedCallback[] = []
   private disconnectedCallbacks: DisconnectedCallback[] = []
@@ -37,9 +38,12 @@ export class GalaxyConnection {
   private authenticatedCallbacks: AuthenticatedCallback[] = []
   private planetJoinedCallbacks: PlanetJoinedCallback[] = []
   private afterActionCallbacks: AfterActionCallback[] = []
-  private enemyPrisonCallbacks: EnemyPrisonCallback[] = []
 
   /* ================= REGISTRATION ================= */
+
+  onEnemyPrison(cb: EnemyPrisonCallback) {
+    this.enemyPrisonCallbacks.push(cb)
+  }
 
   onLog(cb: LogCallback) {
     this.logCallbacks.push(cb)
@@ -73,16 +77,7 @@ export class GalaxyConnection {
     this.afterActionCallbacks.push(cb)
   }
 
-  onEnemyPrison(cb: EnemyPrisonCallback) {
-    this.enemyPrisonCallbacks.push(cb)
-  }
-
   /* ================= INTERNAL ================= */
-
-  private log(msg: string) {
-    console.log("[Galaxy]", msg)
-    this.logCallbacks.forEach(cb => cb(msg))
-  }
 
   private send(str: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -143,11 +138,17 @@ export class GalaxyConnection {
           this.userPartCallbacks.forEach(cb => cb(parts[1]))
           break
 
+        case "PRISONED": {
+          const enemyId = parts[1]
+          if (enemyId && enemyId !== this.myUserId) {
+            this.enemyPrisonCallbacks.forEach(cb => cb(enemyId))
+          }
+          break
+        }
+
         case "ACTION": {
           const actionType = parts[1]
           const targetId = parts[2]
-
-          // ACTION 3 = PRISON
           if (actionType === "3" && targetId !== this.myUserId) {
             this.enemyPrisonCallbacks.forEach(cb => cb(targetId))
           }
@@ -258,11 +259,12 @@ export class GalaxyConnection {
 
     this.send("ACTION 3 " + userId)
 
-    // notify bot AFTER server-side delay
     setTimeout(() => {
       this.afterActionCallbacks.forEach(cb => cb())
     }, 300)
   }
+
+  /* ================= STATE ================= */
 
   isConnected() {
     return this.socket?.readyState === WebSocket.OPEN
@@ -276,23 +278,14 @@ export class GalaxyConnection {
     return this.myUserId
   }
 
-  /* ================= HASH ================= */
+  /* ================= HASH (BROWSER SAFE) ================= */
 
   private genHash(code: string): string {
-    const md5 = this.md5(code)
-    return md5.split("").reverse().join("0").substr(5, 10)
+    let hash = 0
+    for (let i = 0; i < code.length; i++) {
+      hash = (hash << 5) - hash + code.charCodeAt(i)
+      hash |= 0
+    }
+    return Math.abs(hash).toString(16).slice(0, 10)
   }
-
-    return require("crypto")
-    .createHash("md5")
-    .update(str)
-    .digest("hex")
-private md5(str: string): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash).toString(16)
-}
 }
