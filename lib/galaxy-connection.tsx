@@ -8,7 +8,6 @@ export interface UserData {
   level: string
 }
 
-type EnemyPrisonCallback = (enemyId: string) => void
 type LogCallback = (message: string) => void
 type ConnectedCallback = () => void
 type DisconnectedCallback = () => void
@@ -17,6 +16,7 @@ type UserPartCallback = (userId: string) => void
 type AuthenticatedCallback = () => void
 type PlanetJoinedCallback = () => void
 type AfterActionCallback = () => void
+type EnemyPrisonCallback = (enemyId: string) => void
 
 export class GalaxyConnection {
   private socket: WebSocket | null = null
@@ -27,7 +27,6 @@ export class GalaxyConnection {
 
   /* ================= CALLBACKS ================= */
 
-  private enemyPrisonCallbacks: EnemyPrisonCallback[] = []
   private logCallbacks: LogCallback[] = []
   private connectedCallbacks: ConnectedCallback[] = []
   private disconnectedCallbacks: DisconnectedCallback[] = []
@@ -36,12 +35,9 @@ export class GalaxyConnection {
   private authenticatedCallbacks: AuthenticatedCallback[] = []
   private planetJoinedCallbacks: PlanetJoinedCallback[] = []
   private afterActionCallbacks: AfterActionCallback[] = []
+  private enemyPrisonCallbacks: EnemyPrisonCallback[] = []
 
   /* ================= REGISTRATION ================= */
-
-  onEnemyPrison(cb: EnemyPrisonCallback) {
-    this.enemyPrisonCallbacks.push(cb)
-  }
 
   onLog(cb: LogCallback) {
     this.logCallbacks.push(cb)
@@ -73,6 +69,10 @@ export class GalaxyConnection {
 
   onAfterAction(cb: AfterActionCallback) {
     this.afterActionCallbacks.push(cb)
+  }
+
+  onEnemyPrison(cb: EnemyPrisonCallback) {
+    this.enemyPrisonCallbacks.push(cb)
   }
 
   /* ================= INTERNAL ================= */
@@ -140,14 +140,6 @@ export class GalaxyConnection {
         case "SLEEP":
           this.userPartCallbacks.forEach(cb => cb(parts[1]))
           break
-
-        case "PRISONED": {
-          const enemyId = parts[1]
-          if (enemyId && enemyId !== this.myUserId) {
-            this.enemyPrisonCallbacks.forEach(cb => cb(enemyId))
-          }
-          break
-        }
 
         case "ACTION": {
           const actionType = parts[1]
@@ -264,13 +256,11 @@ export class GalaxyConnection {
 
     this.send("ACTION 3 " + userId)
 
-    // 🔔 Notify bot logic AFTER server delay
+    // notify bot AFTER server-side delay
     setTimeout(() => {
       this.afterActionCallbacks.forEach(cb => cb())
     }, 300)
   }
-
-  /* ================= STATE ================= */
 
   isConnected() {
     return this.socket?.readyState === WebSocket.OPEN

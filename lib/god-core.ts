@@ -1,98 +1,41 @@
+// GOD CORE — Phase 7.2
+// Orchestrates PrisonBotLogic safely
+// NO game logic here (LOCKED)
+
 import { PrisonBotLogic } from "./prison-bot-logic"
 
-export type GodMode =
-  | "PASSIVE"
-  | "BALANCED"
-  | "AGGRESSIVE"
-  | "SURVIVAL"
+export interface GodCoreOptions {
+  autoStart?: boolean
+}
 
 export class GodCore {
   private bot: PrisonBotLogic
+  private running = false
 
-  private dangerLevel = 0
-  private currentMode: GodMode = "PASSIVE"
-
-  constructor(bot: PrisonBotLogic) {
+  constructor(bot: PrisonBotLogic, options: GodCoreOptions = {}) {
     this.bot = bot
-  }
 
-  // =========================
-  // SIGNAL INPUTS
-  // =========================
-
-  public enemyAttackDetected() {
-    this.dangerLevel += 3
-    this.recalculate()
-  }
-
-  public successfulPrison() {
-    this.dangerLevel = Math.max(0, this.dangerLevel - 1)
-    this.recalculate()
-  }
-
-  public calmTick() {
-    this.dangerLevel = Math.max(0, this.dangerLevel - 2)
-    this.recalculate()
-  }
-
-  // =========================
-  // MODE DECISION
-  // =========================
-
-  private recalculate() {
-    let next: GodMode = "PASSIVE"
-
-    if (this.dangerLevel >= 13) next = "SURVIVAL"
-    else if (this.dangerLevel >= 8) next = "AGGRESSIVE"
-    else if (this.dangerLevel >= 4) next = "BALANCED"
-
-    if (next !== this.currentMode) {
-      this.currentMode = next
-      this.applyMode(next)
+    if (options.autoStart) {
+      this.start()
     }
   }
 
-  // =========================
-  // APPLY STRATEGY
-  // =========================
+  /* ================= CONTROL ================= */
 
-  private applyMode(mode: GodMode) {
-    switch (mode) {
-      case "PASSIVE":
-        this.bot.updateSettings({
-          ...this.bot["settings"],
-          disconnectAction: false,
-        })
-        break
+  start() {
+    if (this.running) return
+    this.running = true
 
-      case "BALANCED":
-        this.bot.updateSettings({
-          ...this.bot["settings"],
-          disconnectAction: false,
-        })
-        break
-
-      case "AGGRESSIVE":
-        this.bot.updateSettings({
-          ...this.bot["settings"],
-          disconnectAction: true,
-        })
-        break
-
-      case "SURVIVAL":
-        this.bot.updateSettings({
-          ...this.bot["settings"],
-          disconnectAction: true,
-        })
-        break
-    }
+    // delegate to bot brain
+    this.bot.start()
   }
 
-  public getMode() {
-    return this.currentMode
+  stop() {
+    if (!this.running) return
+    this.running = false
   }
 
-  public getDangerLevel() {
-    return this.dangerLevel
+  isRunning() {
+    return this.running
   }
 }
