@@ -61,8 +61,6 @@ export default function GalaxyPrisonBot() {
   const galaxyRef = useRef<GalaxyConnection | null>(null)
   const botRef = useRef<PrisonBotLogic | null>(null)
   
-// const godRef = useRef<GodCore | null>(null)
-
   const filtersRef = useRef({
     blackClan: [] as string[],
     blackNick: [] as string[],
@@ -102,7 +100,6 @@ export default function GalaxyPrisonBot() {
       setBotRunning(false)
       setLiveUsers([])
       botRef.current = null
-      godRef.current = null
       addLog("Disconnected")
     })
 
@@ -132,14 +129,12 @@ export default function GalaxyPrisonBot() {
 
     const bot = new PrisonBotLogic(settings, filtersRef.current, galaxy)
     botRef.current = bot
-    godRef.current = new GodCore(bot)
   }
 
   const disconnect = () => {
     galaxyRef.current?.disconnect()
     galaxyRef.current = null
     botRef.current = null
-    godRef.current = null
     setIsConnected(false)
     setBotRunning(false)
     setLiveUsers([])
