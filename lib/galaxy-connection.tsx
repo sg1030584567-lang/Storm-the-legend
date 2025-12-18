@@ -233,7 +233,7 @@ export class GalaxyConnection {
   /* ================= ACTIONS ================= */
 
   joinPlanet(name: string) {
-    if if (this.authenticated) {
+    if (this.authenticated) {
       this.send("JOIN " + name)
     }
   }
