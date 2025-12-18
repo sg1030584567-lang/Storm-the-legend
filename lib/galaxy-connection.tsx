@@ -1,7 +1,5 @@
-"use client"
-
 // Galaxy WebSocket connection handler (IRC-like protocol)
-// LOCKED FINAL VERSION — Stable & Bot-safe (Phase 7.2)
+// LOCKED FINAL VERSION — Client Safe (Phase 7.2)
 
 export interface UserData {
   id: string
@@ -44,35 +42,27 @@ export class GalaxyConnection {
   onEnemyPrison(cb: EnemyPrisonCallback) {
     this.enemyPrisonCallbacks.push(cb)
   }
-
   onLog(cb: LogCallback) {
     this.logCallbacks.push(cb)
   }
-
   onConnected(cb: ConnectedCallback) {
     this.connectedCallbacks.push(cb)
   }
-
   onDisconnected(cb: DisconnectedCallback) {
     this.disconnectedCallbacks.push(cb)
   }
-
   onUserJoin(cb: UserJoinCallback) {
     this.userJoinCallbacks.push(cb)
   }
-
   onUserPart(cb: UserPartCallback) {
     this.userPartCallbacks.push(cb)
   }
-
   onAuthenticated(cb: AuthenticatedCallback) {
     this.authenticatedCallbacks.push(cb)
   }
-
   onPlanetJoined(cb: PlanetJoinedCallback) {
     this.planetJoinedCallbacks.push(cb)
   }
-
   onAfterAction(cb: AfterActionCallback) {
     this.afterActionCallbacks.push(cb)
   }
@@ -106,7 +96,7 @@ export class GalaxyConnection {
 
         case "HAAAPSI":
           this.send("RECOVER " + this.recover)
-          this.hash = this.genHash(parts[1])
+          this.hash = this.safeHash(parts[1])
           break
 
         case "999":
@@ -198,12 +188,7 @@ export class GalaxyConnection {
     for (let i = 0; i < parts.length - 1; i++) {
       if (/^\d+$/.test(parts[i + 1]) && parts[i + 1] !== this.myUserId) {
         this.userJoinCallbacks.forEach(cb =>
-          cb({
-            id: parts[i + 1],
-            nick: parts[i],
-            clan: "",
-            level: "1",
-          })
+          cb({ id: parts[i + 1], nick: parts[i], clan: "", level: "1" })
         )
       }
     }
@@ -214,7 +199,6 @@ export class GalaxyConnection {
   connect(recoveryCode: string) {
     this.recover = recoveryCode
     this.authenticated = false
-
     this.socket = new WebSocket("wss://cs.mobstudio.ru:6672/")
 
     this.socket.onopen = () => {
@@ -246,46 +230,34 @@ export class GalaxyConnection {
     this.authenticated = false
   }
 
-  /* ================= GAME ACTIONS ================= */
+  /* ================= ACTIONS ================= */
 
   joinPlanet(name: string) {
-    if (this.authenticated) {
+    if if (this.authenticated) {
       this.send("JOIN " + name)
     }
   }
 
   prisonUser(userId: string) {
     if (!this.authenticated) return
-
     this.send("ACTION 3 " + userId)
-
     setTimeout(() => {
       this.afterActionCallbacks.forEach(cb => cb())
     }, 300)
-  }
-
-  /* ================= STATE ================= */
-
-  isConnected() {
-    return this.socket?.readyState === WebSocket.OPEN
   }
 
   isAuthenticated() {
     return this.authenticated
   }
 
-  getMyUserId() {
-    return this.myUserId
-  }
+  /* ================= SAFE HASH ================= */
 
-  /* ================= HASH (BROWSER SAFE) ================= */
-
-  private genHash(code: string): string {
-    let hash = 0
-    for (let i = 0; i < code.length; i++) {
-      hash = (hash << 5) - hash + code.charCodeAt(i)
-      hash |= 0
+  private safeHash(input: string): string {
+    let h = 0
+    for (let i = 0; i < input.length; i++) {
+      h = (h << 5) - h + input.charCodeAt(i)
+      h |= 0
     }
-    return Math.abs(hash).toString(16).slice(0, 10)
+    return Math.abs(h).toString(36)
   }
 }
